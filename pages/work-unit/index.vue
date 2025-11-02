@@ -11,10 +11,13 @@
 </template>
 
 <script setup>
-const workUnits = ref([]);
-const isLoading = ref(true);
+const employeeStore = useEmployeeStore();
+const { pageBeforeEdit } = storeToRefs(employeeStore);
 
-const response = await useSanctumFetch("/api/work-units");
-workUnits.value = response.data.value.work_units;
-isLoading.value = false;
+pageBeforeEdit.value = "/work-unit";
+
+const workUnitStore = useWorkUnitStore();
+const { workUnits, isLoading } = storeToRefs(workUnitStore);
+
+workUnitStore.getWorkUnits();
 </script>
