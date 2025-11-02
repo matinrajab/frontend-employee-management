@@ -12,7 +12,7 @@ const { employees, meta, isLoading, pageBeforeEdit } =
 
 pageBeforeEdit.value = "/employees";
 
-employeeStore.getEmployees(meta.value ? meta.value.current_page : 1);
+employeeStore.getEmployees(meta.value?.current_page);
 
 async function afterDelete() {
   await employeeStore.getEmployees(
