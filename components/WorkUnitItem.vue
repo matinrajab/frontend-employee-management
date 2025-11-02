@@ -17,20 +17,70 @@
         v-if="isExpanded"
         class="p-5 border-t border-line-border bg-background"
       >
-        <WorkUnitTable :unitId="unit.id" />
+        <div v-if="isLoading"><Loading /></div>
+
+        <div v-else>
+          <MainTable
+            :employees="employees"
+            :meta="meta"
+            :changePage="fetchEmployees"
+            :afterDelete="afterDelete"
+          />
+        </div>
       </div>
     </transition>
   </div>
 </template>
 
 <script setup>
+import axiosClient from "~/axios";
+
 const props = defineProps({
   unit: Object,
 });
 
-const isExpanded = ref(false);
+const workUnitStore = useWorkUnitStore();
+const { expandeds } = storeToRefs(workUnitStore);
+
+const employees = ref([]);
+const meta = ref(expandeds.value[props.unit.id]?.meta);
+const isLoading = ref(false);
+
+const isExpanded = ref(expandeds.value[props.unit.id]?.isExpanded);
+if (isExpanded.value) {
+  fetchEmployees(meta.value?.current_page);
+}
+
 function toggleExpand() {
   isExpanded.value = !isExpanded.value;
+  if (isExpanded.value) {
+    fetchEmployees(meta.value?.current_page);
+  } else {
+    expandeds.value[props.unit.id].isExpanded = false;
+  }
+}
+
+async function fetchEmployees(page = 1) {
+  try {
+    isLoading.value = true;
+    await axiosClient
+      .get(`/api/work-unit/${props.unit.id}?page=${page}`)
+      .then((response) => {
+        employees.value = response.data.data;
+        meta.value = response.data.meta;
+      });
+    expandeds.value[props.unit.id] = { meta: meta.value, isExpanded: true };
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+async function afterDelete() {
+  fetchEmployees(
+    employees.value.length == 1
+      ? meta.value.current_page - 1
+      : meta.value.current_page
+  );
 }
 </script>
 

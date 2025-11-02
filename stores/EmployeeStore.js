@@ -1,19 +1,30 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import axiosClient from "~/axios";
 
 export const useEmployeeStore = defineStore("employeeStore", () => {
   const employees = ref([]);
   const meta = ref(null);
+  const metaForSearch = ref(null);
   const isLoading = ref(true);
+  const pageBeforeEdit = ref("");
+
+  const filters = ref({
+    name: "",
+    nip: "",
+    phone_number: "",
+    npwp: "",
+    golongan_id: "",
+    eselon_id: "",
+    position_id: "",
+    work_unit_id: "",
+  });
 
   async function addEmployee(formData) {
     try {
       isLoading.value = true;
-      await useSanctumFetch("/api/employee", {
-        method: "POST",
-        body: formData,
-      });
-      await getEmployees(meta.value.current_page);
+      await axiosClient.post("/api/employee", formData);
+
       navigateTo("/employees");
     } catch (error) {
       console.error("Gagal menambahkan pegawai:", error);
@@ -25,9 +36,10 @@ export const useEmployeeStore = defineStore("employeeStore", () => {
   async function getEmployees(page = 1) {
     try {
       isLoading.value = true;
-      const response = await useSanctumFetch(`/api/employees?page=${page}`);
-      employees.value = response.data.value.data;
-      meta.value = response.data.value.meta;
+      await axiosClient.get(`/api/employees?page=${page}`).then((response) => {
+        employees.value = response.data.data;
+        meta.value = response.data.meta;
+      });
     } finally {
       isLoading.value = false;
     }
@@ -37,9 +49,12 @@ export const useEmployeeStore = defineStore("employeeStore", () => {
     try {
       isLoading.value = true;
       const params = new URLSearchParams({ ...query, page }).toString();
-      const response = await useSanctumFetch(`/api/search-employees?${params}`);
-      employees.value = response.data.value.data;
-      meta.value = response.data.value.meta;
+      await axiosClient
+        .get(`/api/search-employees?${params}`)
+        .then((response) => {
+          employees.value = response.data.data;
+          metaForSearch.value = response.data.meta;
+        });
     } catch (error) {
       console.error("Gagal mencari pegawai:", error);
     } finally {
@@ -47,16 +62,14 @@ export const useEmployeeStore = defineStore("employeeStore", () => {
     }
   }
 
-  function changePage(page) {
-    if (page < 1 || (employees.value && page > meta.value.last_page)) return;
-    getEmployees(page);
-  }
-
   async function getEmployeeById(id) {
     try {
       isLoading.value = true;
-      const response = await useSanctumFetch(`/api/employee/${id}`);
-      return response.data.value.data;
+      return await axiosClient.get(`/api/employee/${id}`).then((response) => {
+        console.log("==============response===============");
+        console.log(response.data.data);
+        return response.data.data;
+      });
     } catch (error) {
       console.error("Gagal mengambil data pegawai:", error);
       return null;
@@ -68,13 +81,11 @@ export const useEmployeeStore = defineStore("employeeStore", () => {
   async function updateEmployee(id, formData) {
     try {
       isLoading.value = true;
-      await useSanctumFetch(`/api/employee/${id}`, {
-        method: "PUT",
-        body: formData,
-      });
 
-      await getEmployees(meta.value.current_page);
-      navigateTo("/employees");
+      formData.append("_method", "PUT");
+      await axiosClient.post(`/api/employee/${id}`, formData);
+
+      navigateTo(pageBeforeEdit.value);
     } catch (error) {
       console.error("Gagal mengupdate pegawai:", error);
     } finally {
@@ -85,18 +96,7 @@ export const useEmployeeStore = defineStore("employeeStore", () => {
   async function deleteEmployee(id) {
     try {
       isLoading.value = true;
-      await useSanctumFetch(`/api/employee/${id}`, {
-        method: "DELETE",
-      });
-
-      if (employees.value) {
-        employees.value = employees.value.filter((emp) => emp.id !== id);
-        meta.value.total -= 1;
-      }
-
-      if (employees.value.length == 0) {
-        changePage(meta.value.current_page - 1);
-      }
+      await axiosClient.delete(`/api/employee/${id}`);
     } catch (error) {
       console.error("Gagal menghapus pegawai: ", error);
     } finally {
@@ -107,11 +107,13 @@ export const useEmployeeStore = defineStore("employeeStore", () => {
   return {
     employees,
     meta,
+    metaForSearch,
     isLoading,
+    pageBeforeEdit,
+    filters,
     addEmployee,
     getEmployees,
     searchEmployees,
-    changePage,
     deleteEmployee,
     getEmployeeById,
     updateEmployee,

@@ -98,10 +98,17 @@
       </div>
     </form>
 
-    <div v-if="isLoading"></div>
+    <div v-if="isLoading">
+      <Loading />
+    </div>
 
     <div v-else-if="employees.length > 0">
-      <MainTable :employees="employees" :meta="meta" @change="changePage" />=
+      <MainTable
+        :employees="employees"
+        :meta="metaForSearch"
+        :changePage="changePage"
+        :afterDelete="afterDelete"
+      />
     </div>
 
     <div v-else class="text-center text-secondary-text py-10">
@@ -116,18 +123,12 @@ definePageMeta({
 });
 
 const employeeStore = useEmployeeStore();
-const { employees, meta, isLoading } = storeToRefs(employeeStore);
+const { employees, metaForSearch, isLoading, pageBeforeEdit, filters } =
+  storeToRefs(employeeStore);
 
-const filters = ref({
-  name: "",
-  nip: "",
-  phone_number: "",
-  npwp: "",
-  golongan_id: "",
-  eselon_id: "",
-  position_id: "",
-  work_unit_id: "",
-});
+pageBeforeEdit.value = "/search-employees";
+
+employeeStore.searchEmployees(filters.value, metaForSearch.value?.current_page);
 
 const references = ref({
   golongans: [],
@@ -142,6 +143,14 @@ async function handleSearch() {
 
 function changePage(page) {
   employeeStore.searchEmployees(filters.value, page);
+}
+
+async function afterDelete() {
+  changePage(
+    employees.value.length == 1
+      ? metaForSearch.value.current_page - 1
+      : metaForSearch.value.current_page
+  );
 }
 
 const response = await useSanctumFetch("/api/filter");

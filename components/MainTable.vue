@@ -18,6 +18,9 @@
           <th class="font-normal px-2 py-1 text-xs">Unit Kerja</th>
           <th class="font-normal px-2 py-1 text-xs">No. HP</th>
           <th class="font-normal px-2 py-1 text-xs">NPWP</th>
+          <th class="font-normal px-2 py-1 text-xs text-center" colspan="2">
+            Aksi
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -45,6 +48,17 @@
           <td class="px-2 py-1 text-xs">{{ employee.work_unit }}</td>
           <td class="px-2 py-1 text-xs">{{ employee.phone_number }}</td>
           <td class="px-2 py-1 text-xs">{{ employee.npwp }}</td>
+          <td class="px-2 py-1 text-xs">
+            <NuxtLink :to="`/edit-employee/${employee.id}`">Edit</NuxtLink>
+          </td>
+          <td class="px-2 py-1 text-xs text-danger">
+            <button
+              @click="openConfirm(employee.id)"
+              class="hover:underline text-danger"
+            >
+              Delete
+            </button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -56,7 +70,7 @@
     <button
       class="px-3 py-1 border rounded-lg disabled:opacity-50"
       :disabled="meta.current_page === 1"
-      @click="$emit('change', meta.current_page - 1)"
+      @click="changePage(meta.current_page - 1)"
     >
       Prev
     </button>
@@ -69,7 +83,7 @@
         'bg-primary text-white': meta.current_page === page,
         'hover:bg-gray-100': meta.current_page !== page,
       }"
-      @click="$emit('change', page)"
+      @click="changePage(page)"
     >
       {{ page }}
     </button>
@@ -77,16 +91,44 @@
     <button
       class="px-3 py-1 border rounded-lg disabled:opacity-50"
       :disabled="meta.current_page === meta.last_page"
-      @click="$emit('change', meta.current_page + 1)"
+      @click="changePage(meta.current_page + 1)"
     >
       Next
     </button>
   </div>
+
+  <ConfirmModal
+    :show="showConfirm"
+    title="Konfirmasi Hapus"
+    message="Apakah Anda yakin ingin menghapus pegawai ini?"
+    @cancel="showConfirm = false"
+    @confirm="confirmDelete"
+  />
 </template>
 
 <script setup>
 const props = defineProps({
   employees: [],
   meta: Object,
+  changePage: Function,
+  afterDelete: Function,
 });
+
+const employeeStore = useEmployeeStore();
+
+const showConfirm = ref(false);
+const selectedEmployeeId = ref(null);
+
+function openConfirm(id) {
+  selectedEmployeeId.value = id;
+  showConfirm.value = true;
+}
+
+async function confirmDelete() {
+  await employeeStore.deleteEmployee(selectedEmployeeId.value);
+  props.afterDelete();
+
+  showConfirm.value = false;
+  selectedEmployeeId.value = null;
+}
 </script>
