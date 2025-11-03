@@ -233,7 +233,7 @@ async function handleSubmit() {
         </div>
         <div class="grid grid-cols-2 gap-10 mb-5">
           <div>
-            <label class="block mb-3" for="file_input">Upload file</label>
+            <label class="block mb-3" for="file_input">Foto</label>
             <input
               class="block w-full border border-line-border rounded-2xl py-3 px-5 cursor-pointer"
               id="file_input"
